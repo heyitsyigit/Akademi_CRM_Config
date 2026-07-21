@@ -1,6 +1,6 @@
 # =====================================================================
 # Tüm servislerin ortak yapılandırması (Spring Cloud Config - shared).
-# Bu dosya OHBSY_lite_v2_config git reposuna taşınmak üzere hazırlanmıştır.
+# Bu dosya Akademi_CRM_Config Git deposunun ortak yapılandırmasıdır.
 # =====================================================================
 
 eureka:
