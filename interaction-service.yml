@@ -1,0 +1,21 @@
+server:
+  port: 8089
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_interaction
+    username: ${INTERACTION_DB_USER:crm_interaction}
+    password: ${INTERACTION_DB_PASSWORD:crm_interaction}
+
+# T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
+# (merkezi Swagger UI dropdowni /interaction/v3/api-docs cagirir).
+springdoc:
+  api-docs:
+    path: /interaction/v3/api-docs
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db

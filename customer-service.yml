@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_customer
+    username: ${CUSTOMER_DB_USER:crm_customer}
+    password: ${CUSTOMER_DB_PASSWORD:crm_customer}
+  # FR-002 arama sonucu cache'i (§5). Redis erişilemezse arama cache'siz sürer (graceful).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
+# (merkezi Swagger UI dropdowni /customer/v3/api-docs cagirir).
+springdoc:
+  api-docs:
+    path: /customer/v3/api-docs
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db

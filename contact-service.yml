@@ -1,0 +1,21 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_contact
+    username: ${CONTACT_DB_USER:crm_contact}
+    password: ${CONTACT_DB_PASSWORD:crm_contact}
+
+# T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
+# (merkezi Swagger UI dropdowni /contact/v3/api-docs cagirir).
+springdoc:
+  api-docs:
+    path: /contact/v3/api-docs
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db

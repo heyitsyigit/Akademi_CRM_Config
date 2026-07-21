@@ -1,0 +1,74 @@
+# =====================================================================
+# Tüm servislerin ortak yapılandırması (Spring Cloud Config - shared).
+# Bu dosya OHBSY_lite_v2_config git reposuna taşınmak üzere hazırlanmıştır.
+# =====================================================================
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    # T20: her instance benzersiz kayıt olur (yatay ölçekleme).
+    instance-id: ${spring.application.name}:${random.uuid}
+
+spring:
+  # T1: virtual threads.
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    hibernate:
+      # T3: şema Flyway ile yönetilir; Hibernate yalnızca doğrular.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  # T22: i18n mesaj kaynakları (common-lib messages_tr/messages_en).
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+  # T18/T20: Kafka tüketicileri (yayın Debezium ile; servisler producer kullanmaz).
+  # group-id = servis adı → partition'lar instance'lara dağılır (3 partition).
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${spring.application.name}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Merkezi Swagger UI tarayıcıda çalıştığı için container IP'lerine değil gateway origin'ine gider.
+# OAuth URL'leri de tarayıcının erişebildiği host Keycloak adresleridir.
+swagger:
+  gateway-server-url: ${SWAGGER_GATEWAY_SERVER_URL:/}
+  oauth2:
+    authorization-url: ${SWAGGER_OAUTH2_AUTHORIZATION_URL:http://localhost:8090/realms/crm-lite/protocol/openid-connect/auth}
+    token-url: ${SWAGGER_OAUTH2_TOKEN_URL:http://localhost:8090/realms/crm-lite/protocol/openid-connect/token}
+
+# GK-004 (D-4): ülke kodu seçilmeyen telefon girdileri bu kodla E.164'e tamamlanır (parametrik).
+crm:
+  phone:
+    default-dial-code: "+90"

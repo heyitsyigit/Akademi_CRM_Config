@@ -1,0 +1,47 @@
+server:
+  port: 8088
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_order
+    username: ${ORDER_DB_USER:crm_order}
+    password: ${ORDER_DB_PASSWORD:crm_order}
+  # Faz 25: FR-017 sepeti Redis'te yaşar (basket:sale:{orderId}).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+# T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
+# (merkezi Swagger UI dropdowni /order/v3/api-docs cagirir).
+springdoc:
+  api-docs:
+    path: /order/v3/api-docs
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db,redis
+
+# FR-022 ACC-4 / sepet TTL'i (Faz 25): bekleyen satış zaman aşımı — parametrik.
+crm:
+  sale:
+    timeout: 72h
+    # FR-022 ACC-4: zaman aşımı tarama sıklığı (job ShedLock'lu — tek instance koşar).
+    # e2e senaryo 6'da kısa timeout ile birlikte düşürülür.
+    timeout-scan:
+      interval-ms: 60000
+  # FR-021 submit in-flight kilidi TTL'i (ACC-13/14): çökme sonrası kilit takılmasın.
+  submit:
+    lock-ttl: 60s
+  # FR-021 orta katman entegrasyonu (ACC-11 — hepsi parametrik). Simülatör modu e2e senaryolarını
+  # sürer: success | error | timeout. timeout: order-tarafı yanıt deadline'ı (simülatör kısa devre
+  # yapar). reconcile: SBMT_UNVRF mutabakat job'ı aralığı + deneme üst sınırı.
+  middleware:
+    mode: success
+    timeout: 30s
+    reconcile:
+      interval-ms: 15000
+      attempts: 3

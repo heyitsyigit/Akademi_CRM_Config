@@ -1,0 +1,21 @@
+server:
+  port: 8091
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_product
+    username: ${PRODUCT_DB_USER:crm_product}
+    password: ${PRODUCT_DB_PASSWORD:crm_product}
+
+# T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
+# (merkezi Swagger UI dropdowni /product/v3/api-docs cagirir).
+springdoc:
+  api-docs:
+    path: /product/v3/api-docs
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db

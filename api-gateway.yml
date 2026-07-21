@@ -1,0 +1,85 @@
+server:
+  port: 8080
+
+# FR-001: Keycloak JWT doğrulama uçları.
+# issuer-uri = token'daki iss (host'tan alınan token: localhost:8090).
+# jwk-set-uri = anahtarların çekileceği URL (konteynerde keycloak:8080'e override edilir).
+keycloak:
+  issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/crm-lite}
+  jwk-set-uri: ${KEYCLOAK_JWKSET_URI:http://localhost:8090/realms/crm-lite/protocol/openid-connect/certs}
+  # FR-023 ACC-7: dil tercihi Keycloak Account API'si üzerinden kullanıcının kendi
+  # token'ıyla yazılır. jwk-set-uri gibi konteyner içi adrese override edilir.
+  account-uri: ${KEYCLOAK_ACCOUNT_URI:http://localhost:8090/realms/crm-lite/account}
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          # Route'lar Eureka üzerinden load-balanced (lb://) çözümlenir.
+          # JWT resource-server doğrulaması Faz 1'de (Keycloak) eklenecektir.
+          routes:
+            - id: party-service
+              uri: lb://party-service
+              predicates:
+                - Path=/party/**
+            - id: customer-service
+              uri: lb://customer-service
+              predicates:
+                - Path=/customer/**
+            - id: address-service
+              uri: lb://address-service
+              predicates:
+                - Path=/address/**
+            - id: contact-service
+              uri: lb://contact-service
+              predicates:
+                - Path=/contact/**
+            # Faz 23 (FR-016…018): katalog, sipariş ve iş etkileşimi servisleri.
+            - id: catalog-service
+              uri: lb://catalog-service
+              predicates:
+                - Path=/catalog/**
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/order/**
+            - id: interaction-service
+              uri: lb://interaction-service
+              predicates:
+                - Path=/interaction/**
+            # Faz 22 rezervinin gerçekleşmesi (Faz 28): FE ürün detayını (FR-015)
+            # customer-service proxy'si olmadan doğrudan bu route'tan alır.
+            - id: product-service
+              uri: lb://product-service
+              predicates:
+                - Path=/product/**
+
+# T12: merkezi Swagger UI (http://localhost:8080/swagger-ui.html) — dropdown'daki her giriş,
+# ilgili servisin ÖNEKLİ api-docs ucuna gateway route'u üzerinden gider (ör. /party/v3/api-docs).
+# Servis tarafındaki önek, config-repo/<servis>.yml'deki springdoc.api-docs.path override'ıdır.
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    persist-authorization: true
+    oauth:
+      client-id: crm-web
+      scopes: openid,profile
+      use-pkce-with-authorization-code-grant: true
+    urls:
+      - name: party-service
+        url: /party/v3/api-docs
+      - name: customer-service
+        url: /customer/v3/api-docs
+      - name: address-service
+        url: /address/v3/api-docs
+      - name: contact-service
+        url: /contact/v3/api-docs
+      - name: catalog-service
+        url: /catalog/v3/api-docs
+      - name: order-service
+        url: /order/v3/api-docs
+      - name: interaction-service
+        url: /interaction/v3/api-docs
+      - name: product-service
+        url: /product/v3/api-docs
