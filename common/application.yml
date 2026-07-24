@@ -66,6 +66,18 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 management:
+  # T24 Faz E.5 — actuator İŞ PORTUNDAN AYRI bir portta sunulur.
+  # Konteyner başına tek uygulama olduğu için tüm servislerde aynı port kullanılabilir.
+  # Bu port compose'da host'a PUBLISH EDİLMEZ → actuator dış ağdan hiç erişilemez; yalnız
+  # compose ağından (Prometheus scrape) ve `podman exec` ile (refresh-all.sh) ulaşılır.
+  # A17'nin üzerine savunma derinliğidir: orada gateway'in actuator'ü ADMIN token'a bağlanmıştı,
+  # burada iş portundan tamamen kaldırılıyor.
+  # Etkilenen yerler: compose healthcheck'leri + connector-init READINESS_URLS,
+  # infra/monitoring/prometheus.yml hedefleri, infra/config/refresh-all.sh, startup smoke.
+  # Kapsam: yalnız config CLIENT'ları (8 domain + gateway). config-server ve discovery-server
+  # kendi ayarlarını bu dosyadan okumaz ve yazma ucu sunmaz — bilinçli olarak kapsam dışı.
+  server:
+    port: 9000
   endpoints:
     web:
       # T24: 'refresh' ucu Config Server'dan gelen değerleri çalışan uygulamaya restart'sız

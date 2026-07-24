@@ -19,12 +19,7 @@ springdoc:
     path: /order/v3/api-docs
 
 management:
-  # T24 Faz E.5 PİLOT: actuator iş portundan ayrı bir porta taşınır. Konteyner başına tek
-  # uygulama olduğu için tüm servislerde AYNI port kullanılabilir (9000). Bu port compose'da
-  # host'a publish EDİLMEZ → actuator dış ağdan tamamen erişilemez olur (A17'nin üzerine
-  # savunma derinliği). Pilot doğrulanınca common/application.yml'a taşınacak.
-  server:
-    port: 9000
+  # NOT: management.server.port ortak config'tedir (common/application.yml — T24 Faz E.5).
   endpoint:
     health:
       group:
