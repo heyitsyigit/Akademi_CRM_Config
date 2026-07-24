@@ -33,4 +33,4 @@ management:
 crm:
   customer:
     creation:
-      choreography-enabled: false
+      choreography-enabled: true
