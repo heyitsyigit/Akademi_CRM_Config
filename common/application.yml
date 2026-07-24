@@ -46,8 +46,13 @@ spring:
 management:
   endpoints:
     web:
+      # T24: 'refresh' ucu Config Server'dan gelen değerleri çalışan uygulamaya restart'sız
+      # uygular (@ConfigurationProperties bean'leri yerinde yeniden bağlanır).
+      # PROD'A AÇIK DEĞİLDİR: her servisin application-prod.yml'ı bu listeyi tümüyle ezip
+      # 'health,info,prometheus' verir → refresh prod'da otomatik kapalıdır (fail-closed).
+      # Prod'da kimlik doğrulamalı açılması T24 Faz E'nin işidir.
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,refresh
   endpoint:
     health:
       probes:
