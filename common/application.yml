@@ -7,6 +7,19 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka/}
+    # T24 Faz B2 (A12) — ZORUNLU: Eureka client'ını refresh kapsamı DIŞINDA tut.
+    # Varsayılan (true) EurekaClientAutoConfiguration'ın RefreshableEurekaClientConfiguration
+    # dalını seçer; orada eurekaClient / eurekaApplicationInfoManager / eurekaRegistration
+    # bean'lerinin üçü de @RefreshScope'tur. Bu durumda her /actuator/refresh çağrısı:
+    #   (1) mevcut kaydı siler (deregister 200),
+    #   (2) instance-id ${random.uuid} yeniden çözüldüğü için YENİ kimlikle kaydolmaya çalışır,
+    #   (3) bu kayıt "Cannot execute request on any known server" ile düşer
+    # → servis Eureka'dan tamamen çıkar ve kendiliğinden toparlanmaz (yalnız restart düzeltir).
+    # false → refresh kapsamsız EurekaClientConfiguration dalı seçilir, kayıt refresh'ten etkilenmez.
+    # Yan etkisi ("hiçbir eureka.* özelliği refresh'lenemez") T24 §3.2'deki kararla zaten aynıdır:
+    # eureka.* restart gerektiren anahtarlar sınıfındadır.
+    refresh:
+      enable: false
   instance:
     prefer-ip-address: true
     # T20: her instance benzersiz kayıt olur (yatay ölçekleme).
