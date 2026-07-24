@@ -110,4 +110,4 @@ swagger:
 # GK-004 (D-4): ülke kodu seçilmeyen telefon girdileri bu kodla E.164'e tamamlanır (parametrik).
 crm:
   phone:
-    default-dial-code: "+900"
+    default-dial-code: "+90"
