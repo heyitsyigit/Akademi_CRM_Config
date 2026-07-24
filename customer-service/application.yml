@@ -25,3 +25,12 @@ management:
       group:
         readiness:
           include: readinessState,db
+
+# FR-003 saga geri dönüş kapısı (İletişim Faz B/Y1, PROJECT_BRAIN §4 Faz E kararı 4).
+# true  → adres/iletişim CustomerCreatedEvent ile asenkron koreografiye taşınır.
+# false → eski senkron yol (address/contact create + kompanzasyon).
+# T24: yenilenebilir — /actuator/refresh ile RESTART GEREKMEDEN çevrilir (kill-switch).
+crm:
+  customer:
+    creation:
+      choreography-enabled: true
