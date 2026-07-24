@@ -28,7 +28,7 @@ management:
 # FR-022 ACC-4 / sepet TTL'i (Faz 25): bekleyen satış zaman aşımı — parametrik.
 crm:
   sale:
-    timeout: 72h
+    timeout: 96h
     # FR-022 ACC-4: zaman aşımı tarama sıklığı (job ShedLock'lu — tek instance koşar).
     # e2e senaryo 6'da kısa timeout ile birlikte düşürülür.
     timeout-scan:
