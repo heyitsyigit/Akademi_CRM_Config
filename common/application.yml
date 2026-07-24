@@ -22,8 +22,17 @@ eureka:
       enable: false
   instance:
     prefer-ip-address: true
-    # T20: her instance benzersiz kayıt olur (yatay ölçekleme).
-    instance-id: ${spring.application.name}:${random.uuid}
+    # T20 (b): her instance benzersiz kayıt olur (yatay ölçekleme).
+    #
+    # A14 (2026-07-24) — ${random.uuid} DEĞİL, konteyner kimliği kullanılır.
+    # random.uuid her AÇILIŞTA yeni değer üretiyordu: servis restart edilince Eureka'ya YENİ
+    # kimlikle kaydoluyor, eski kayıt onun yerine geçmediği için ölü instance olarak kalıyordu.
+    # Toplu restart sonrası yenileme oranı düşünce self-preservation tahliyeyi de durduruyor ve
+    # gateway round-robin ile ölü IP'ye gidip NoRouteToHostException/500 üretiyordu (canlı yaşandı).
+    # spring.cloud.client.hostname konteyner kimliğidir: --scale altında replika başına
+    # BENZERSİZ (T20'nin amacı korunur) ama restart'ta AYNI kalır, böylece Eureka kaydı değiştirir.
+    # ${HOSTNAME} kullanılamaz: bu imajlarda HOSTNAME env değişkeni tanımlı değildir (doğrulandı).
+    instance-id: ${spring.application.name}:${spring.cloud.client.hostname}
 
 spring:
   # T1: virtual threads.

@@ -36,12 +36,16 @@ crm:
   # FR-021 submit in-flight kilidi TTL'i (ACC-13/14): çökme sonrası kilit takılmasın.
   submit:
     lock-ttl: 60s
-  # FR-021 orta katman entegrasyonu (ACC-11 — hepsi parametrik). Simülatör modu e2e senaryolarını
-  # sürer: success | error | timeout. timeout: order-tarafı yanıt deadline'ı (simülatör kısa devre
-  # yapar). reconcile: SBMT_UNVRF mutabakat job'ı aralığı + deneme üst sınırı.
+  # FR-021 orta katman entegrasyonu. Simülatör modu e2e senaryolarını sürer:
+  # success | error | timeout (T24 §3.1 — yenilenebilir, restart gerektirmez).
+  # reconcile.interval-ms: SBMT_UNVRF mutabakat job'ının tetikleme aralığı; @Scheduled kaydında
+  # okunur, refresh ile DEĞİŞMEZ (T24 §3.2).
+  #
+  # A10 (2026-07-24): buradan `timeout: 30s` ve `reconcile.attempts: 3` KALDIRILDI — hiçbir kod
+  # bu iki anahtarı okumuyordu (placeholder yoktu), yani parametrik oldukları izlenimi
+  # yanıltıcıydı. Orta katman deadline'ı ve deneme üst sınırı gerçekten uygulanacaksa önce kodda
+  # bağlanmalı, sonra buraya geri eklenmelidir.
   middleware:
     mode: success
-    timeout: 30s
     reconcile:
       interval-ms: 15000
-      attempts: 3
