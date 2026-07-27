@@ -89,6 +89,26 @@ spring:
       kafka:
         binder:
           brokers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+          # =============================================================================
+          # T26 Faz 9 — producer'ın broker beklerken bloklama süresi.
+          #
+          # Kafka producer'ın VARSAYILANI 60 SANİYEDİR: send() metadata bulamazsa veya
+          # buffer dolarsa o kadar bloklar. Denetim izi (audit.<servis> topic'i) bu yolu
+          # kullanır ve yayın TEK bir tüketici thread'inden yapılır — broker erişilemezken
+          # tek bir kaydın o thread'i bir dakika tıkaması demektir. Faz 7 tatbikatında
+          # ölçüldü: "Topic audit.party-service not present in metadata after 60000 ms".
+          #
+          # Faz 9 dağıtımı iki geçişli yaptığı için KAYIT DEFTERİ artık bu beklemeden
+          # ETKİLENMEZ (Loki satırları Kafka denenmeden ÖNCE basılır). Bu ayar kalan
+          # gecikmeyi kısaltır — kayıp riskini değil.
+          #
+          # 5000 ms bilinçli seçim: 2000 ms ilk yayında topic provision'ı yavaş kalırsa
+          # gereksiz hata üretebilir; 5 sn hem o payı bırakır hem 60 sn'yi 12 kat kısaltır.
+          # Kapsam binder geneli: Bus ve DLQ producer'ları da aynı gerekçeyle 60 sn
+          # beklememelidir.
+          # =============================================================================
+          producer-properties:
+            max.block.ms: 5000
 
 management:
   # T24 Faz E.5 — actuator İŞ PORTUNDAN AYRI bir portta sunulur.
