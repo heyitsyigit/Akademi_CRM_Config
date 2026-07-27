@@ -64,6 +64,31 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  cloud:
+    # =================================================================================
+    # T24 Faz D — Spring Cloud Bus (Kafka binder).
+    #
+    # NE İŞE YARAR: /actuator/busrefresh TEK bir ağ çağrısıyla springCloudBus topic'ine
+    # olay basar; her instance kendi anonim consumer group'uyla okur ve kendini yeniler.
+    # Faz C'nin refresh-all.sh fan-out'u YERİNDE KALIR — Bus'ın farkı konteynere `exec`
+    # erişimi gerektirmemesidir (ağ üzerinden tek çağrı).
+    #
+    # `bus.id` HEDEFLİ YAYININ adresidir:
+    #     POST /actuator/busrefresh?destination=order-service:**
+    # A14 dersi burada da geçerli: kimlik ${random.uuid} DEĞİL konteyner hostname'idir —
+    # --scale altında replika başına benzersiz, restart'ta AYNI kalır.
+    #
+    # springCloudBus topic'i binder tarafından AdminClient ile açılır (T18'in
+    # KafkaAdmin.NewTopics deseniyle aynı mekanizma) — broker-side auto-create'e
+    # bırakılmaz. Ayrı bir topic-init konteyneri bu yüzden GEREKMEZ.
+    # =================================================================================
+    bus:
+      enabled: true
+      id: ${spring.application.name}:${spring.cloud.client.hostname}
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
 management:
   # T24 Faz E.5 — actuator İŞ PORTUNDAN AYRI bir portta sunulur.
@@ -82,11 +107,13 @@ management:
     web:
       # T24: 'refresh' ucu Config Server'dan gelen değerleri çalışan uygulamaya restart'sız
       # uygular (@ConfigurationProperties bean'leri yerinde yeniden bağlanır).
+      # 'busrefresh' (Faz D) aynı işi TÜM instance'lara yayınlar — uç expose EDİLMEZSE
+      # Bus bağımlılığı eklenmiş olsa bile çağrı 404 döner (kolayca gözden kaçan adım).
       # PROD'A AÇIK DEĞİLDİR: her servisin application-prod.yml'ı bu listeyi tümüyle ezip
-      # 'health,info,prometheus' verir → refresh prod'da otomatik kapalıdır (fail-closed).
-      # Prod'da kimlik doğrulamalı açılması T24 Faz E'nin işidir.
+      # 'health,info,prometheus' verir → refresh/busrefresh prod'da otomatik kapalıdır
+      # (fail-closed). Prod'da kimlik doğrulamalı açılması T24 Faz E'nin işidir.
       exposure:
-        include: health,info,metrics,prometheus,refresh
+        include: health,info,metrics,prometheus,refresh,busrefresh
   endpoint:
     health:
       probes:
