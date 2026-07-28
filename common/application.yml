@@ -132,8 +132,21 @@ management:
       # PROD'A AÇIK DEĞİLDİR: her servisin application-prod.yml'ı bu listeyi tümüyle ezip
       # 'health,info,prometheus' verir → refresh/busrefresh prod'da otomatik kapalıdır
       # (fail-closed). Prod'da kimlik doğrulamalı açılması T24 Faz E'nin işidir.
+      #
+      # T28 (Faz 44) — dayanıklılık uçları: 'circuitbreakers' devrelerin O ANKİ durumunu,
+      # 'circuitbreakerevents' ise DURUM GEÇİŞ GEÇMİŞİNİ (closed→open→half_open→closed,
+      # zaman damgalı) verir. İkisi Prometheus'un yerine değil YANINA geçer ve panonun
+      # göremediği bir boşluğu kapatır: devre 10 sn açık kalır, scrape aralığı 15 sn'dir —
+      # yani kısa bir açılma pano grafiğinde HİÇ görünmeyebilir, ama olay listesinde
+      # kesinlikle durur. Kesinti sonrası "tam olarak ne zaman açıldı, ne zaman kapandı"
+      # sorusunun tek kesin cevabı budur.
+      # 'retries'/'retryevents' aynı işi yeniden denemeler için yapar.
+      #
+      # Uçlar YALNIZ resilience4j taşıyan servislerde doğar (customer/order/address/product);
+      # diğerlerinde liste öğesi sessizce yok sayılır — ayrı bir profil/koşul gerekmez.
+      # Actuator 9000'de ve host'a publish EDİLMEDİĞİ için bu uçlar dış ağdan erişilemez.
       exposure:
-        include: health,info,metrics,prometheus,refresh,busrefresh
+        include: health,info,metrics,prometheus,refresh,busrefresh,circuitbreakers,circuitbreakerevents,retries,retryevents
   endpoint:
     health:
       probes:
