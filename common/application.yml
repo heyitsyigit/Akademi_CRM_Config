@@ -171,3 +171,51 @@ swagger:
 crm:
   phone:
     default-dial-code: "+90"
+
+  # =================================================================================
+  # T28 (Faz 42/43) — senkron servis-arası çağrıların dayanıklılık ayarları.
+  # Tüketen: customer / order / address / product servislerindeki RestClientConfig.
+  #
+  # NİYE BURADA: ResilienceInterceptor deseni BİLİNÇLİ olarak dört serviste çoğaltıldı
+  # (ortak modül yok — T28 kararı). Sınıf çoğaltılsa da AYARLAR tek kaynaktan gelmelidir;
+  # aksi halde bir servisin eşiği sessizce diğerlerinden ayrılır. T28'in yazılı olarak
+  # kabul ettiği "drift" riskini kapatan yer burasıdır.
+  #
+  # SESSİZ BOZULMA YOK: her anahtarın Java tarafında AYNI varsayılanı vardır. Config Server
+  # erişilemezse veya bir anahtar yanlış yazılırsa davranış DEĞİŞMEZ, yalnız bu dosya
+  # etkisiz kalır. (Resilience4j'nin kendi resilience4j.* şemasına geçilmedi: orada anahtar
+  # eksikse kütüphane varsayılanı devreye girer — pencere 100, min çağrı 100 — ve devre
+  # pratikte HİÇ açılmaz. Bu, tam da bu projenin kaçındığı türden sessiz bir bozulmadır.)
+  #
+  # ⚠️ DEĞİŞTİRİRKEN KORUNMASI GEREKEN ZİNCİR:
+  #       connect-timeout  <  read-timeout
+  #       slow-call-duration-threshold  <  read-timeout
+  # slow-call eşiği read-timeout'un ÜSTÜNE çıkarılırsa hiçbir çağrı "yavaş" sayılmaz:
+  # yavaşlayan ama ölmeyen bir servis devreyi HİÇ açtırmaz ve her istek read-timeout'unu
+  # sonuna kadar yer — yani Faz 42 öncesindeki duruma dönülür. Hata vermez, sessizce etkisizleşir.
+  #
+  # RESTART İSTER: registry'ler açılışta kurulur; /actuator/refresh onları yeniden kurmaz
+  # (kurmalı da değil — mevcut devrelerin durumu sıfırlanırdı). Kazanç "yeniden derleme
+  # gerekmemesi"dir, "restart gerekmemesi" değil.
+  #
+  # Devrelerin o anki durumu ve geçiş geçmişi: /actuator/circuitbreakers ve
+  # /actuator/circuitbreakerevents (yukarıda exposure listesinde açık).
+  # =================================================================================
+  resilience:
+    # Bağlantı kurulamıyorsa vazgeç (down instance'a takılıp kalma).
+    connect-timeout: 2s
+    # Cevap gelmezse iptal (saga adımları süresiz beklemesin).
+    read-timeout: 5s
+    circuit-breaker:
+      sliding-window-size: 10
+      minimum-number-of-calls: 5
+      failure-rate-threshold: 50
+      # read-timeout'un ALTINDA kalmalı — bkz. yukarıdaki zincir uyarısı.
+      slow-call-duration-threshold: 3s
+      slow-call-rate-threshold: 50
+      wait-duration-in-open-state: 10s
+    retry:
+      # Yalnız GET + IOException için geçerlidir; POST/PATCH/DELETE saga çift kayıt
+      # üretmesin diye HİÇ yeniden denenmez (bu kural koddadır, ayarla değiştirilemez).
+      max-attempts: 2
+      wait-duration: 200ms
