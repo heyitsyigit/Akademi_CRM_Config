@@ -6,6 +6,20 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_address
     username: ${ADDRESS_DB_USER:crm_address}
     password: ${ADDRESS_DB_PASSWORD:crm_address}
+  # Faz 5 (A38): cities + lookup cache'leri Redis'te (T20 - in-memory cache yasagi).
+  # Redis erisilemezse cache atlanir, liste DB'den doner (CacheConfig fail-open).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# Faz 5 (A38): cache TTL'leri (Java varsayilanlari da aynidir - sessiz bozulma yok).
+# TTL'ler cache manager kurulurken okunur; degisiklik restart ister (T24 3.2).
+crm:
+  cache:
+    cities-ttl: 24h
+    lookup-ttl: 24h
 
 # T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
 # (merkezi Swagger UI dropdowni /address/v3/api-docs cagirir).
