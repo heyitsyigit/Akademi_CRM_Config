@@ -6,6 +6,25 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_catalog
     username: ${CATALOG_DB_USER:crm_catalog}
     password: ${CATALOG_DB_PASSWORD:crm_catalog}
+  # Faz 5 (CT4): lookup cache'i Redis'te (T20 - in-memory cache yasagi). Onceden
+  # @EnableCaching HIC YOKTU (customer C6'nin birebir arizasi): LookupResolver'in
+  # @Cacheable skalerleri oluydu ve repo'nun en okuma-yogun servisinde her istek statu
+  # lookup'ini gercek SELECT ile cozuyordu.
+  # Redis erisilemezse cache atlanir, lookup DB'den cozulmeye devam eder (CacheConfig
+  # fail-open) - validateBasket otorite validasyonu Redis kesintisinde de calisir.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# Faz 5 (CT4): cache TTL'i (Java varsayilani da aynidir - sessiz bozulma yok).
+# TTL cache manager kurulurken okunur; degisiklik restart ister (T24 3.2).
+# Katalog CEVAPLARI burada cache'lenmez: onlarin cache'i tuketici tarafinda
+# (order-service CachedCatalogDataProvider); validateBasket hicbir katmanda cache'lenmez.
+crm:
+  cache:
+    lookup-ttl: 24h
 
 # T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
 # (merkezi Swagger UI dropdowni /catalog/v3/api-docs cagirir).
