@@ -243,7 +243,7 @@ crm:
   # T24 §3.2 sınıflandırmasında "yenilenebilir" tarafta yer alır.
   # =================================================================================
   logging:
-    slow-request-threshold-ms: 0
+    slow-request-threshold-ms: 1000
 
 # =====================================================================================
 # T30 — log seviyeleri. Katalog: backend/docs/LOG_EVENT_KATALOGU.md
