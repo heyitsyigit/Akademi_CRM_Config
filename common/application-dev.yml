@@ -1,0 +1,14 @@
+# =====================================================================================
+# Tüm servislerin ortak DEV yapılandırması (Spring Cloud Config — shared, profil: dev).
+# search-paths: [common, "{application}"] → bu dosya her config client'ına uygulanır.
+# =====================================================================================
+
+# T30: dev profilinde tanılama satırları (CRM-*-2xxx) açılır — outbox yazımı, idempotens
+# atlaması, kopan iz bağlamı. Bunlar üretimde gürültüdür ama geliştirme/e2e sırasında
+# "olay yazıldı mı, Debezium mu taşımadı" sorusunun tek doğrudan cevabıdır.
+#
+# prod'da açılmaz: profil dosyası yalnız dev'e aittir ve common/application.yml'deki
+# INFO varsayılanı yürürlükte kalır.
+logging:
+  level:
+    com.ohbsy: DEBUG

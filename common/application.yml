@@ -219,3 +219,51 @@ crm:
       # üretmesin diye HİÇ yeniden denenmez (bu kural koddadır, ayarla değiştirilemez).
       max-attempts: 2
       wait-duration: 200ms
+
+  # =================================================================================
+  # T30 — operasyonel log sözleşmesi eşikleri.
+  # Tüketen: common-lib CrmLoggingProperties → RequestLoggingFilter (tüm servisler + gateway).
+  #
+  # SESSİZ BOZULMA YOK: anahtarın Java tarafında AYNI varsayılanı vardır (1000 ms). Config
+  # Server erişilemezse ya da anahtar yanlış yazılırsa davranış DEĞİŞMEZ, yalnız bu blok
+  # etkisiz kalır — T28'in crm.resilience bloğuyla aynı sözleşme.
+  #
+  # NE YAPAR: bu eşiği AŞAN HTTP isteği erişim logunu INFO yerine WARN'a yükseltir:
+  #     CRM-WEB-1001 (INFO)  →  CRM-WEB-4001 (WARN, thresholdMs alanıyla)
+  # Böylece performans sapması INFO gürültüsünün içinde kaybolmaz ve kendi olay koduna
+  # bağlanabilir. Ayrım kod düzeyindedir; eşiği büyütmek satırı susturmaz, sınırı taşır.
+  #
+  # 1000 ms bilinçli seçim: senkron çekirdek çağrıların read-timeout'u 5 sn'dir (yukarıdaki
+  # crm.resilience bloğu). 1 sn'yi aşan bir uç henüz HATA değildir ama incelenmesi gereken
+  # bir sapmadır — yani bu eşik dayanıklılık eşiklerinin ALTINDA kalmalıdır, aksi halde
+  # uyarı ancak devre kesici zaten devreye girdikten sonra çıkar ve erken uyarı değerini yitirir.
+  #
+  # RESTART İSTEMEZ: CrmLoggingProperties bir @ConfigurationProperties bean'idir ve değeri
+  # çağrı anında okunur → /actuator/refresh (veya /actuator/busrefresh) ile anında etkilidir.
+  # T24 §3.2 sınıflandırmasında "yenilenebilir" tarafta yer alır.
+  # =================================================================================
+  logging:
+    slow-request-threshold-ms: 1000
+
+# =====================================================================================
+# T30 — log seviyeleri. Katalog: backend/docs/LOG_EVENT_KATALOGU.md
+#
+# Olay kodunun İLK HANESİ seviye sınıfıdır (1=INFO, 2=DEBUG, 4=WARN, 5=ERROR), dolayısıyla
+# buradaki seviye ayarı doğrudan "hangi olay kodları görünür" demektir:
+#   com.ohbsy = INFO  → CRM-*-1xxx / 4xxx / 5xxx görünür, 2xxx (tanılama) görünmez.
+#   com.ohbsy = DEBUG → outbox yazımı (CRM-MSG-2001), idempotens atlaması (2002) ve
+#                       iz bağlamı kopması (2004) da görünür.
+# Varsayılan INFO'dur; DEBUG dev profilinde açılır (common/application-dev.yml).
+#
+# DENETİM İZİ BUNDAN ETKİLENMEZ: crm.audit.trail logger'ının seviyesi logback-spring.xml'de
+# root'tan BAĞIMSIZ olarak INFO'ya sabitlenmiştir (T26). root WARN'a çekilse bile denetim
+# satırları kesilmez — burada yanlışlıkla susturulması yapısal olarak imkânsızdır.
+# =====================================================================================
+logging:
+  level:
+    root: INFO
+    com.ohbsy: INFO
+    # Kafka client'ları her producer/consumer kurulumunda TAM konfigürasyon dökümünü INFO'da
+    # basar (onlarca satır, her servis açılışında). Bağlantı sorunları WARN/ERROR'dadır ve
+    # bu ayardan etkilenmez — susturulan yalnız açılış gürültüsüdür.
+    org.apache.kafka.clients: WARN
