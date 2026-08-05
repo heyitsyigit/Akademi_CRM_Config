@@ -25,8 +25,11 @@ crm:
     enabled: ${CRM_ASSISTANT_ENABLED:false}
 
     # DIKKAT: kesin model kimligini OpenAI panosundan dogrulayin - liste sik degisir ve
-    # gecersiz bir ad saglayicidan 404 dondurur (asistan bunu 503'e cevirir).
-    model: gpt-4o-mini
+    # gecersiz bir ad saglayicidan 404 dondurur. Asistan bunu disariya 503 olarak cevirir
+    # ama logda AYRI bir satir dusurur: CRM-ASST-5003 "... check crm.assistant.model".
+    # Model degistirirken once o satira bakin - "saglayiciya ulasilamiyor" gorunumunun
+    # sebebi cogu zaman agda ya da anahtarda degil, bu tek satirdadir.
+    model: gpt-5.6-luna
 
     # Konusmanin Redis'te yasama suresi. Asistanin hafizasi bilincli olarak kisadir:
     # terk edilmis konusmalar kendiliginden silinir, kullanici verisi suresiz saklanmaz.
