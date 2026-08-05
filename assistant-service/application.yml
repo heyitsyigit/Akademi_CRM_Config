@@ -14,8 +14,15 @@ spring:
 
 crm:
   assistant:
-    # Faz 0 karari 2: dev/test'te acik, prod'da kapali (application-prod.yml ezer).
-    enabled: true
+    # Varsayilan KAPALI ve bu bilinclidir: burasi ACIK bir depodur ve anahtar burada
+    # yoktur. Anahtari olmayan bir gelistiricide `enabled: true` olsaydi servis acilista
+    # fail-fast ile DUSER (AssistantProperties.isApiKeyPresentWhenEnabled) ve yigin
+    # calismaz hale gelirdi. Asistani acan sey, anahtari da tasiyan .env dosyasidir:
+    #   backend/.env:  OPENAI_API_KEY=sk-...
+    #                  CRM_ASSISTANT_ENABLED=true
+    # Boylece "acik ama anahtarsiz" durumu yapisal olarak olusamaz.
+    # Faz 0 karari 2 geregi prod profili bunu ayrica false'a sabitler.
+    enabled: ${CRM_ASSISTANT_ENABLED:false}
 
     # DIKKAT: kesin model kimligini OpenAI panosundan dogrulayin - liste sik degisir ve
     # gecersiz bir ad saglayicidan 404 dondurur (asistan bunu 503'e cevirir).
