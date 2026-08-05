@@ -1,0 +1,81 @@
+server:
+  port: 8092
+
+# T31 — CRM Asistani (LLM tabanli kullanici yardimcisi).
+# Bu servis bir TM Forum domain servisi DEGILDIR: veritabani yoktur, domain olayi uretmez,
+# outbox/inbox tasimaz. Kalici durum (konusma, kota sayaclari) yalniz Redis'tedir (T20).
+# Recete ve gerekce: backend/docs/ASISTAN_CHATBOT_ANALIZI.md
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+crm:
+  assistant:
+    # Faz 0 karari 2: dev/test'te acik, prod'da kapali (application-prod.yml ezer).
+    enabled: true
+
+    # DIKKAT: kesin model kimligini OpenAI panosundan dogrulayin - liste sik degisir ve
+    # gecersiz bir ad saglayicidan 404 dondurur (asistan bunu 503'e cevirir).
+    model: gpt-4o-mini
+
+    # Konusmanin Redis'te yasama suresi. Asistanin hafizasi bilincli olarak kisadir:
+    # terk edilmis konusmalar kendiliginden silinir, kullanici verisi suresiz saklanmaz.
+    conversation-ttl: 4h
+
+    open-ai:
+      base-url: https://api.openai.com/v1
+      # GIZLI ANAHTAR BU DEPOYA YAZILMAZ - burasi acik bir Git deposudur.
+      # Deger yalnizca ortam degiskeninden gelir (compose .env -> OPENAI_API_KEY).
+      #
+      # Esleme neden ACIKCA burada: ozelligi (crm.assistant.open-ai.api-key) dogrudan
+      # ortam degiskeninden bindirmek Spring'in relaxed-binding kurallarina bagli kalmak
+      # demektir (tireler silinir -> CRM_ASSISTANT_OPENAI_APIKEY). Adi bir harf yanlis
+      # yazmak, anahtarin SESSIZCE ulasmamasi ve servisin acilista "anahtar yok" diye
+      # dusmesi olurdu. Bu desen depodaki EUREKA_SERVICE_URL kullanimiyla aynidir.
+      api-key: ${OPENAI_API_KEY:}
+      connect-timeout: 5s
+      # Akista iki parca arasindaki sessizlik icin ust sinir (akisin TAMAMI icin degil).
+      read-timeout: 60s
+
+    # Araclarin CRM'e eristigi hedef GATEWAY'dir, Eureka servis adi degil: asistan bir
+    # orkestrator degil, KULLANICI ADINA hareket eden bir istemcidir. Gateway uzerinden
+    # gidildiginde /internal/** yasagi ve rol kontrolu asistan icin de gecerli olur.
+    crm:
+      gateway-base-url: ${CRM_GATEWAY_BASE_URL:http://api-gateway:8080}
+      connect-timeout: 2s
+      read-timeout: 5s
+
+    # Maliyet korumasi (Faz 7). Iki sinir iki ayri riski karsilar: gunluk butce toplam
+    # harcamayi, dakikalik sinir ani tuketimi tutar. Asilan sinir 429 dondurur.
+    limits:
+      daily-token-budget: 200000
+      max-requests-per-minute: 20
+      max-tool-iterations: 5
+      max-conversation-messages: 40
+
+    # Saglayici devre kesicisi. YAVAS CAGRI ESIGI BILINCLI OLARAK YOKTUR: akisli bir
+    # uretimde yavaslik normaldir (uzun bir cevap onlarca saniye surer); esik konsaydi
+    # devre saglikli trafikte acilirdi. Devreyi yalniz gercek transport hatalari besler.
+    # Bu yuzden T28'in servisler-arasi dort kopyasindan AYRI bir interceptor kullanilir.
+    resilience:
+      sliding-window-size: 10
+      minimum-number-of-calls: 5
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 30s
+
+# T12: gateway onek soymaz; api-docs onekli sunulur (merkezi Swagger UI dropdown'i icin).
+springdoc:
+  api-docs:
+    path: /assistant/v3/api-docs
+
+# Hazir olma kosulu: Redis. Diger servisler burada `db` kullanir; asistanin veritabani
+# yoktur ve konusma Redis'siz var olamaz (RedisConversationStore erisilemezlikte 503 verir).
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,redis

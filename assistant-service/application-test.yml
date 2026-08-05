@@ -1,0 +1,13 @@
+# Entegrasyon ve kabul testi profili.
+#
+# Asistan testte KAPALIDIR: otomatik kosan hicbir sey model saglayicisina cikmamali
+# ve para harcamamalidir (ASISTAN_CHATBOT_ANALIZI, "CI'da OpenAI cagrisi yok").
+crm:
+  environment: test
+  assistant:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: always

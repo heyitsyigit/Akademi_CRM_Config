@@ -54,6 +54,17 @@ spring:
               uri: lb://product-service
               predicates:
                 - Path=/product/**
+            # T31: CRM Asistani. Domain servisi DEGILDIR ama erisim yine gateway
+            # uzerindendir - asistanin kendi arac cagrilari da BU route'a geri doner
+            # ve kullanicinin kendi JWT'siyle gelir, boylece /internal/** yasagi ile
+            # rol kontrolu asistan icin de gecerli olur.
+            #
+            # NOT: cevap uclari SSE'dir (text/event-stream). Akisin parca parca gecmesi
+            # beklenir; tek parca geliyorsa gateway tamponluyordur ve ayrica ele alinir.
+            - id: assistant-service
+              uri: lb://assistant-service
+              predicates:
+                - Path=/assistant/**
 
 # T12: merkezi Swagger UI (http://localhost:8080/swagger-ui.html) — dropdown'daki her giriş,
 # ilgili servisin ÖNEKLİ api-docs ucuna gateway route'u üzerinden gider (ör. /party/v3/api-docs).
@@ -83,3 +94,5 @@ springdoc:
         url: /interaction/v3/api-docs
       - name: product-service
         url: /product/v3/api-docs
+      - name: assistant-service
+        url: /assistant/v3/api-docs
