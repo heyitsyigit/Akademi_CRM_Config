@@ -81,6 +81,16 @@ crm:
       daily-token-budget: 200000
       max-requests-per-minute: 20
       max-tool-iterations: 5
+
+      # ESZAMANLILIK: zaman penceresi kotalarindan FARKLI bir kaynagi korur. Her acik
+      # akis bir saglayici baglantisi, bir sunucu threadi ve devam eden bir faturadir;
+      # dakikada 20 isteje izin veren sinir, ayni anda acilmis 20 akisi da onaylar.
+      # Varsayilan 3: kullanicinin birkac sekmesi olmasi normaldir. 0 = sinir kapali.
+      max-concurrent-streams-per-user: 3
+      # Bir akisin canli sayildigi en uzun sure = sayacin kendi kendini onarma penceresi.
+      # Surec akisin ortasinda olurse sizan girdi bu sure sonunda duser. SSE zaman
+      # asimindan KISA olmamalidir, yoksa hala akan bir cevap bitmis sayilir.
+      max-stream-duration: 5m
       max-conversation-messages: 40
 
     # Saglayici devre kesicisi. YAVAS CAGRI ESIGI BILINCLI OLARAK YOKTUR: akisli bir
