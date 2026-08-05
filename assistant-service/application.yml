@@ -31,26 +31,20 @@ crm:
     # sebebi cogu zaman agda ya da anahtarda degil, bu tek satirdadir.
     model: gpt-5.6-luna
 
-    # Akil yurutme cabasi. BOS BIRAKILIRSA govdeye hic konmaz ve bu, akil yurutmeyen
-    # modeller (gpt-4o-mini gibi) icin DOGRU olandir - onlar parametreyi tanimaz, gonderilirse
-    # 400 doner. gpt-5.6-luna'da ise tersi gecerlidir: /v1/chat/completions uzerinde arac
-    # cagrimiyla birlikte varsayilan caba kabul EDILMEZ ve saglayici sunu der:
-    #   "Function tools with reasoning_effort are not supported for gpt-5.6-luna
-    #    in /v1/chat/completions. ... or set reasoning_effort to 'none'."
-    # Yani dogru deger yoktur, MODELE GORE dogru deger vardir. Bu satir bu yuzden
-    # model kimliginin hemen yanindadir: ikisi birlikte degistirilir.
-    reasoning-effort: none
-
     # Konusmanin Redis'te yasama suresi. Asistanin hafizasi bilincli olarak kisadir:
     # terk edilmis konusmalar kendiliginden silinir, kullanici verisi suresiz saklanmaz.
     conversation-ttl: 4h
 
-    open-ai:
+    chat-model:
+      # HANGI ADAPTER. Deger, ChatModelClient uygulamalarinin @ConditionalOnProperty
+      # kosuluyla eslesir. Baska bir saglayiciya gecmek = yeni adapter sinifi + bu satir;
+      # is katmani (ConversationServiceImpl, araclar) HIC degismez.
+      provider: openai
       base-url: https://api.openai.com/v1
       # GIZLI ANAHTAR BU DEPOYA YAZILMAZ - burasi acik bir Git deposudur.
       # Deger yalnizca ortam degiskeninden gelir (compose .env -> OPENAI_API_KEY).
       #
-      # Esleme neden ACIKCA burada: ozelligi (crm.assistant.open-ai.api-key) dogrudan
+      # Esleme neden ACIKCA burada: ozelligi (crm.assistant.chat-model.api-key) dogrudan
       # ortam degiskeninden bindirmek Spring'in relaxed-binding kurallarina bagli kalmak
       # demektir (tireler silinir -> CRM_ASSISTANT_OPENAI_APIKEY). Adi bir harf yanlis
       # yazmak, anahtarin SESSIZCE ulasmamasi ve servisin acilista "anahtar yok" diye
@@ -59,6 +53,19 @@ crm:
       connect-timeout: 5s
       # Akista iki parca arasindaki sessizlik icin ust sinir (akisin TAMAMI icin degil).
       read-timeout: 60s
+
+      # SAGLAYICIYA OZGU ayarlar - anahtarlarini yalnizca ilgili adapter bilir.
+      # Ortak ayar sinifinda alan olarak durmazlar: saglayici degistiginde anlamsiz olu
+      # alanlar birakirlar ve adapter iddiasini bosa cikarirlar.
+      options:
+        # BOS BIRAKILIRSA govdeye hic konmaz ve bu, akil yurutmeyen modeller (gpt-4o-mini
+        # gibi) icin DOGRU olandir - onlar parametreyi tanimaz, gonderilirse 400 doner.
+        # gpt-5.6-luna'da ise tersi gecerlidir: /v1/chat/completions uzerinde arac
+        # cagrimiyla birlikte varsayilan caba kabul EDILMEZ ve saglayici sunu der:
+        #   "Function tools with reasoning_effort are not supported for gpt-5.6-luna
+        #    in /v1/chat/completions. ... or set reasoning_effort to 'none'."
+        # Yani dogru deger yoktur, MODELE GORE dogru deger vardir.
+        reasoning-effort: none
 
     # Araclarin CRM'e eristigi hedef GATEWAY'dir, Eureka servis adi degil: asistan bir
     # orkestrator degil, KULLANICI ADINA hareket eden bir istemcidir. Gateway uzerinden
