@@ -31,6 +31,16 @@ crm:
     # sebebi cogu zaman agda ya da anahtarda degil, bu tek satirdadir.
     model: gpt-5.6-luna
 
+    # Akil yurutme cabasi. BOS BIRAKILIRSA govdeye hic konmaz ve bu, akil yurutmeyen
+    # modeller (gpt-4o-mini gibi) icin DOGRU olandir - onlar parametreyi tanimaz, gonderilirse
+    # 400 doner. gpt-5.6-luna'da ise tersi gecerlidir: /v1/chat/completions uzerinde arac
+    # cagrimiyla birlikte varsayilan caba kabul EDILMEZ ve saglayici sunu der:
+    #   "Function tools with reasoning_effort are not supported for gpt-5.6-luna
+    #    in /v1/chat/completions. ... or set reasoning_effort to 'none'."
+    # Yani dogru deger yoktur, MODELE GORE dogru deger vardir. Bu satir bu yuzden
+    # model kimliginin hemen yanindadir: ikisi birlikte degistirilir.
+    reasoning-effort: none
+
     # Konusmanin Redis'te yasama suresi. Asistanin hafizasi bilincli olarak kisadir:
     # terk edilmis konusmalar kendiliginden silinir, kullanici verisi suresiz saklanmaz.
     conversation-ttl: 4h
