@@ -6,6 +6,32 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_interaction
     username: ${INTERACTION_DB_USER:crm_interaction}
     password: ${INTERACTION_DB_PASSWORD:crm_interaction}
+  # SOLID Faz 3 (IN13): BSN_INTER_ST lookup cache'i Redis'te (T20 - in-memory cache yasagi).
+  # Onceden @EnableCaching HIC YOKTU ve pom.xml'de Redis bagimliligi da yoktu: 4 satirlik,
+  # hic degismeyen BSN_INTER_ST her statu gecisinde DB'den cozuluyordu (catalog CT4 /
+  # customer C6 / product PR5'in birebir arizasi).
+  # Bu serviste anahtar onegi servis adi TEK BASINA YETMEZ: common-lib LookupResolver da
+  # burada bean'dir ve @EnableCaching acilinca kendi lookupSt*/lookupTp* cache'lerini
+  # kullanir - ama o GNL_ST'yi cozer, BsnInterStatusResolver ise BSN_INTER_ST'yi (K6: ayri
+  # tablolar). Cakisma servisler arasi degil servis ICIdir; bu yuzden yeni cache'ler AYRI
+  # adlarla (bsnInterStId / bsnInterStCode) tanimlidir (CacheConfig).
+  # Redis erisilemezse cache atlanir, lookup DB'den cozulmeye devam eder (CacheConfig
+  # fail-open) - statu gecisi kararlari cache uzerinden VERILMEZ, entity'nin guncel ST_ID'sine
+  # bakilir.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# SOLID Faz 3 (IN13): lookup cache TTL'i. Java varsayilaniyla ayni tutulur
+# (CrmCacheProperties) - sessiz bozulma yok. TTL cache manager kurulurken okunur;
+# degisiklik restart ister (T24 3.2).
+# Etkilesim CEVAPLARI hicbir katmanda cache'lenmez: statu siparisin yasam dongusunden turer
+# ve bayat okunmasi order <-> interaction arasinda sessiz tutarsizlik uretirdi.
+crm:
+  cache:
+    lookup-ttl: 24h
 
 # T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
 # (merkezi Swagger UI dropdowni /interaction/v3/api-docs cagirir).

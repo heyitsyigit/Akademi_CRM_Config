@@ -1,0 +1,173 @@
+server:
+  port: 8092
+
+# T31 — CRM Asistani (LLM tabanli kullanici yardimcisi).
+# Bu servis bir TM Forum domain servisi DEGILDIR: veritabani yoktur, domain olayi uretmez,
+# outbox/inbox tasimaz. Kalici durum (konusma, kota sayaclari) yalniz Redis'tedir (T20).
+# Recete ve gerekce: backend/docs/ASISTAN_CHATBOT_ANALIZI.md
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+crm:
+  assistant:
+    # Varsayilan KAPALI ve bu bilinclidir: burasi ACIK bir depodur ve anahtar burada
+    # yoktur. Anahtari olmayan bir gelistiricide `enabled: true` olsaydi servis acilista
+    # fail-fast ile DUSER (AssistantProperties.isApiKeyPresentWhenEnabled) ve yigin
+    # calismaz hale gelirdi. Asistani acan sey, anahtari da tasiyan .env dosyasidir:
+    #   backend/.env:  OPENAI_API_KEY=sk-...
+    #                  CRM_ASSISTANT_ENABLED=true
+    # Boylece "acik ama anahtarsiz" durumu yapisal olarak olusamaz.
+    # Faz 0 karari 2 geregi prod profili bunu ayrica false'a sabitler.
+    enabled: ${CRM_ASSISTANT_ENABLED:false}
+
+    # DIKKAT: kesin model kimligini OpenAI panosundan dogrulayin - liste sik degisir ve
+    # gecersiz bir ad saglayicidan 404 dondurur. Asistan bunu disariya 503 olarak cevirir
+    # ama logda AYRI bir satir dusurur: CRM-ASST-5003 "... check crm.assistant.model".
+    # Model degistirirken once o satira bakin - "saglayiciya ulasilamiyor" gorunumunun
+    # sebebi cogu zaman agda ya da anahtarda degil, bu tek satirdadir.
+    model: gpt-5.6-luna
+
+    # Konusmanin Redis'te yasama suresi. Asistanin hafizasi bilincli olarak kisadir:
+    # terk edilmis konusmalar kendiliginden silinir, kullanici verisi suresiz saklanmaz.
+    conversation-ttl: 4h
+
+    # FIYAT LISTESI - 1 MILYON TOKEN BASINA (saglayici panosuyla ayni birim; farkli bir
+    # birim secmek her guncellemede cevrim hatasi riski demekti).
+    #
+    # GIRDI ve CIKTI AYRI fiyatlanir: cikti tipik olarak birkac kat pahalidir. Tek bir
+    # birim fiyat kullanmak, uzun cevapli turlarda maliyeti SISTEMATIK olarak dusuk
+    # gosterirdi.
+    #
+    # Fiyati tanimli olmayan model maliyet panosunda SIFIR gorunur, asistan yine calisir:
+    # fiyat listesi eksik diye kullaniciya cevap vermemek orantisiz olurdu. Eksiklik
+    # panoda gorunur - token akar, para akmaz.
+    #
+    # DIKKAT: degerler TAHMINIDIR ve saglayici panosundan dogrulanmalidir; fiyat listesi
+    # zaman icinde degisir ve buradaki sayilar sessizce eskir.
+    pricing:
+      # NOKTA ICEREN HARITA ANAHTARI KOSELI PARANTEZ ISTER: Spring nokta karakterini
+      # seviye ayraci sayar, aksi halde anahtar "gpt-5" olur ve "4-mini" ModelPrice
+      # alani sanilir - baglama SESSIZCE bos kalir ve maliyet hep sifir gorunur.
+      "[gpt-5.4-mini]":
+        input-per-million: 0.25
+        output-per-million: 2.00
+      "[gpt-5.6-luna]":
+        input-per-million: 1.25
+        output-per-million: 10.00
+
+    # GOREVE GORE MODEL. Bos birakilirsa her is yukaridaki varsayilan model ile yapilir.
+    # Iki is birbirine benzemez: sohbet turu arac semalariyla KARAR verir (aranan sey
+    # function calling isabeti ve dusuk gecikme), hata aciklamasi ise aracsizdir ve
+    # ciktisi ogretici bir metindir (aranan sey metin kalitesi). Biri icin hizli/ucuz,
+    # digeri icin guclu bir model secmek mesru bir karardir.
+    #
+    # DIKKAT - options DA goreve baglidir: reasoning_effort MODELE bagli bir
+    # parametredir (bkz. yukarisi). Ikinci model onu tanimiyorsa bos harita yazin (options: {});
+    # ALAN HIC YAZILMAZSA genel secenekler devralinir ve saglayici 400 doner.
+    tasks:
+      # SOHBET TURU her mesajda calisir; belirleyici olan GECIKME ve maliyettir.
+      # Olcum (2026-08-06, ayni istek, arac cagrimiyla):
+      #   gpt-5.4-mini 1000ms  |  gpt-5.6-luna 2013ms  (ayni token, ayni arac karari)
+      # PromptBehaviourIT gpt-5.4-mini ile 6/6 gecti (20,4 sn; luna 26,7 sn) - yani
+      # yonlendirme, dil kurali ve injection direnci ayni. Hizli olan secildi.
+      conversation:
+        model: gpt-5.4-mini
+        options:
+          # Bu model her iki bicimi de kabul eder; none daha hizlidir (1000ms vs 1374ms).
+          reasoning-effort: none
+
+      # HATA ACIKLAMASI seyrek calisir ve aracsizdir; belirleyici olan METIN KALITESIDIR.
+      # Cikti FR/kabul kriterine dayali ogretici bir paragraftir, birkac yuz ms fark
+      # kullaniciyi ilgilendirmez. Bu yuzden guclu model burada birakildi.
+      error-explanation:
+        model: gpt-5.6-luna
+        options:
+          # ZORUNLU: bu model arac cagrimiyla birlikte varsayilan cabayi KABUL ETMEZ.
+          # Alan silinirse saglayici 400 doner (bkz. yukarida CRM-ASST-5005 notu).
+          reasoning-effort: none
+
+    chat-model:
+      # HANGI ADAPTER. Deger, ChatModelClient uygulamalarinin @ConditionalOnProperty
+      # kosuluyla eslesir. Baska bir saglayiciya gecmek = yeni adapter sinifi + bu satir;
+      # is katmani (ConversationServiceImpl, araclar) HIC degismez.
+      provider: openai
+      base-url: https://api.openai.com/v1
+      # GIZLI ANAHTAR BU DEPOYA YAZILMAZ - burasi acik bir Git deposudur.
+      # Deger yalnizca ortam degiskeninden gelir (compose .env -> OPENAI_API_KEY).
+      #
+      # Esleme neden ACIKCA burada: ozelligi (crm.assistant.chat-model.api-key) dogrudan
+      # ortam degiskeninden bindirmek Spring'in relaxed-binding kurallarina bagli kalmak
+      # demektir (tireler silinir -> CRM_ASSISTANT_OPENAI_APIKEY). Adi bir harf yanlis
+      # yazmak, anahtarin SESSIZCE ulasmamasi ve servisin acilista "anahtar yok" diye
+      # dusmesi olurdu. Bu desen depodaki EUREKA_SERVICE_URL kullanimiyla aynidir.
+      api-key: ${OPENAI_API_KEY:}
+      connect-timeout: 5s
+      # Akista iki parca arasindaki sessizlik icin ust sinir (akisin TAMAMI icin degil).
+      read-timeout: 60s
+
+      # SAGLAYICIYA OZGU ayarlar - anahtarlarini yalnizca ilgili adapter bilir.
+      # Ortak ayar sinifinda alan olarak durmazlar: saglayici degistiginde anlamsiz olu
+      # alanlar birakirlar ve adapter iddiasini bosa cikarirlar.
+      options:
+        # BOS BIRAKILIRSA govdeye hic konmaz ve bu, akil yurutmeyen modeller (gpt-4o-mini
+        # gibi) icin DOGRU olandir - onlar parametreyi tanimaz, gonderilirse 400 doner.
+        # gpt-5.6-luna'da ise tersi gecerlidir: /v1/chat/completions uzerinde arac
+        # cagrimiyla birlikte varsayilan caba kabul EDILMEZ ve saglayici sunu der:
+        #   "Function tools with reasoning_effort are not supported for gpt-5.6-luna
+        #    in /v1/chat/completions. ... or set reasoning_effort to 'none'."
+        # Yani dogru deger yoktur, MODELE GORE dogru deger vardir.
+        reasoning-effort: none
+
+    # Araclarin CRM'e eristigi hedef GATEWAY'dir, Eureka servis adi degil: asistan bir
+    # orkestrator degil, KULLANICI ADINA hareket eden bir istemcidir. Gateway uzerinden
+    # gidildiginde /internal/** yasagi ve rol kontrolu asistan icin de gecerli olur.
+    crm:
+      gateway-base-url: ${CRM_GATEWAY_BASE_URL:http://api-gateway:8080}
+      connect-timeout: 2s
+      read-timeout: 5s
+
+    # Maliyet korumasi (Faz 7). Iki sinir iki ayri riski karsilar: gunluk butce toplam
+    # harcamayi, dakikalik sinir ani tuketimi tutar. Asilan sinir 429 dondurur.
+    limits:
+      daily-token-budget: 200000
+      max-requests-per-minute: 20
+      max-tool-iterations: 5
+
+      # ESZAMANLILIK: zaman penceresi kotalarindan FARKLI bir kaynagi korur. Her acik
+      # akis bir saglayici baglantisi, bir sunucu threadi ve devam eden bir faturadir;
+      # dakikada 20 isteje izin veren sinir, ayni anda acilmis 20 akisi da onaylar.
+      # Varsayilan 3: kullanicinin birkac sekmesi olmasi normaldir. 0 = sinir kapali.
+      max-concurrent-streams-per-user: 3
+      # Bir akisin canli sayildigi en uzun sure = sayacin kendi kendini onarma penceresi.
+      # Surec akisin ortasinda olurse sizan girdi bu sure sonunda duser. SSE zaman
+      # asimindan KISA olmamalidir, yoksa hala akan bir cevap bitmis sayilir.
+      max-stream-duration: 5m
+      max-conversation-messages: 40
+
+    # Saglayici devre kesicisi. YAVAS CAGRI ESIGI BILINCLI OLARAK YOKTUR: akisli bir
+    # uretimde yavaslik normaldir (uzun bir cevap onlarca saniye surer); esik konsaydi
+    # devre saglikli trafikte acilirdi. Devreyi yalniz gercek transport hatalari besler.
+    # Bu yuzden T28'in servisler-arasi dort kopyasindan AYRI bir interceptor kullanilir.
+    resilience:
+      sliding-window-size: 10
+      minimum-number-of-calls: 5
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 30s
+
+# T12: gateway onek soymaz; api-docs onekli sunulur (merkezi Swagger UI dropdown'i icin).
+springdoc:
+  api-docs:
+    path: /assistant/v3/api-docs
+
+# Hazir olma kosulu: Redis. Diger servisler burada `db` kullanir; asistanin veritabani
+# yoktur ve konusma Redis'siz var olamaz (RedisConversationStore erisilemezlikte 503 verir).
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,redis

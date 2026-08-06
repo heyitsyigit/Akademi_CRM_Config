@@ -6,6 +6,19 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_party
     username: ${PARTY_DB_USER:crm_party}
     password: ${PARTY_DB_PASSWORD:crm_party}
+  # Faz 5 (PT4): lookup cache'leri Redis'te tutulur (in-memory cache yasagi).
+  # Redis erisilemezse CacheConfig fail-open davranir ve istek DB'den devam eder.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# Faz 5 (PT4): lookup cache TTL'i. Java varsayilaniyla ayni tutulur;
+# degisiklik CacheManager olusurken okundugu icin servis yeniden baslatilmalidir.
+crm:
+  cache:
+    lookup-ttl: 24h
 
 # T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
 # (merkezi Swagger UI dropdowni /party/v3/api-docs cagirir).

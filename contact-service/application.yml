@@ -6,6 +6,22 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_contact
     username: ${CONTACT_DB_USER:crm_contact}
     password: ${CONTACT_DB_PASSWORD:crm_contact}
+  # Faz 5 (CM24): lookup + ulke telefon kodu cache'leri Redis'te (T20 - in-memory cache yasagi).
+  # Onceden bos @EnableCaching vardi ve Boot ConcurrentMap'e dusuyordu: bes cache de JVM
+  # heap'inde, instance basina ayri ve hic bosalmadan duruyordu.
+  # Redis erisilemezse cache atlanir, liste DB'den doner (CacheConfig fail-open).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# Faz 5 (CM24): cache TTL'leri (Java varsayilanlari da aynidir - sessiz bozulma yok).
+# TTL'ler cache manager kurulurken okunur; degisiklik restart ister (T24 3.2).
+crm:
+  cache:
+    country-dial-codes-ttl: 24h
+    lookup-ttl: 24h
 
 # T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
 # (merkezi Swagger UI dropdowni /contact/v3/api-docs cagirir).

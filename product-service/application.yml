@@ -6,6 +6,24 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_product
     username: ${PRODUCT_DB_USER:crm_product}
     password: ${PRODUCT_DB_PASSWORD:crm_product}
+  # SOLID Faz 5 (PR5): lookup cache'i Redis'te (T20 - in-memory cache yasagi). Bu servisteki
+  # ariza digerlerinden AGIRDI: @EnableCaching yoktu ve pom.xml'de Redis bagimliligi da yoktu,
+  # yani LookupResolver'in @Cacheable skalerleri tamamen oluydu ve her statu cozumu gercek bir
+  # SELECT uretiyordu (PR6'nin N+1'iyle birlesince 50 satirlik ozet = 50 GNL_ST sorgusu).
+  # Anahtar onegi servis adidir (CacheConfig): K16 geregi PROD_ST/ACTV ile RECORD_ST/ACTV
+  # FARKLI ID'lerdir, oneksiz paylasilan Redis'te servisler birbirinin ID'sini okurdu.
+  # Redis erisilemezse cache atlanir, lookup DB'den cozulmeye devam eder (CacheConfig fail-open).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
+# SOLID Faz 5 (PR5): lookup cache TTL'i. Java varsayilaniyla ayni tutulur (CrmCacheProperties)
+# - sessiz bozulma yok. TTL cache manager kurulurken okunur; degisiklik restart ister (T24 3.2).
+crm:
+  cache:
+    lookup-ttl: 24h
 
 # T12: gateway onek soymaz; api-docs gateway uzerinden erisilebilsin diye onekli sunulur
 # (merkezi Swagger UI dropdowni /product/v3/api-docs cagirir).
