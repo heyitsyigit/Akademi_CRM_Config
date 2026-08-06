@@ -133,7 +133,12 @@ crm:
     # Maliyet korumasi (Faz 7). Iki sinir iki ayri riski karsilar: gunluk butce toplam
     # harcamayi, dakikalik sinir ani tuketimi tutar. Asilan sinir 429 dondurur.
     limits:
-      daily-token-budget: 200000
+      # KULLANICI BASINA gunluk token tavani (Redis: assistant:quota:tokens:<user>:<gun>).
+      # 200000 idi ve tek bir gelistirme/deneme gununde doldu (consumed=202347): sunum
+      # gunu asistanin ortasinda kilitlenmesi, korumanin kendisini kesinti kaynagina
+      # cevirir. 5 kat yukseltildi. Gercek maliyet tavani zaten saglayici panosundaki
+      # aylik hard limittir; bu sayac kacak tuketimi erken yakalamak icindir.
+      daily-token-budget: 1000000
       max-requests-per-minute: 20
       max-tool-iterations: 5
 
