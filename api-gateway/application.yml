@@ -10,6 +10,22 @@ keycloak:
   # FR-023 ACC-7: dil tercihi Keycloak Account API'si üzerinden kullanıcının kendi
   # token'ıyla yazılır. jwk-set-uri gibi konteyner içi adrese override edilir.
   account-uri: ${KEYCLOAK_ACCOUNT_URI:http://localhost:8090/realms/crm-lite/account}
+  # FR-001: giriş (direct access grant) artık FE'den değil gateway'den yapılır — kilitli
+  # hesap ile yanlış parola ayrımı (ACC-8) yalnız sunucu tarafında kurulabilir.
+  token-uri: ${KEYCLOAK_TOKEN_URI:http://localhost:8090/realms/crm-lite/protocol/openid-connect/token}
+  # ACC-8: kilit durumu Admin API'nin attack-detection ucundan okunur.
+  admin-uri: ${KEYCLOAK_ADMIN_URI:http://localhost:8090/admin/realms/crm-lite}
+  # Girişin yapıldığı public client: FE'nin bugüne kadar kullandığının AYNISI — üretilen
+  # token'ın azp/aud değerleri değişmez, resource-server kuralları aynen geçerli kalır.
+  login-client-id: ${KEYCLOAK_LOGIN_CLIENT_ID:crm-web}
+  # ACC-8 kilit sorgusunun kimliği. Yetkisi TEK role sınırlıdır: realm-management:view-users.
+  # Yer tutucu adları property adlarının gevşek-bağlama (relaxed binding) karşılığıdır:
+  # KEYCLOAK_SERVICE_ACCOUNT_CLIENT_SECRET ortam değişkeni bu depo güncellenmemiş olsa da
+  # doğrudan keycloak.service-account.client-secret'a bağlanır (compose ile Config deposu
+  # arasında sürüm farkı oluştuğunda gateway yine ayağa kalkar).
+  service-account:
+    client-id: ${KEYCLOAK_SERVICE_ACCOUNT_CLIENT_ID:crm-gateway}
+    client-secret: ${KEYCLOAK_SERVICE_ACCOUNT_CLIENT_SECRET:crm-gateway-secret}
 
 spring:
   cloud:
