@@ -35,6 +35,27 @@ crm:
     # terk edilmis konusmalar kendiliginden silinir, kullanici verisi suresiz saklanmaz.
     conversation-ttl: 4h
 
+    # FIYAT LISTESI - 1 MILYON TOKEN BASINA (saglayici panosuyla ayni birim; farkli bir
+    # birim secmek her guncellemede cevrim hatasi riski demekti).
+    #
+    # GIRDI ve CIKTI AYRI fiyatlanir: cikti tipik olarak birkac kat pahalidir. Tek bir
+    # birim fiyat kullanmak, uzun cevapli turlarda maliyeti SISTEMATIK olarak dusuk
+    # gosterirdi.
+    #
+    # Fiyati tanimli olmayan model maliyet panosunda SIFIR gorunur, asistan yine calisir:
+    # fiyat listesi eksik diye kullaniciya cevap vermemek orantisiz olurdu. Eksiklik
+    # panoda gorunur - token akar, para akmaz.
+    #
+    # DIKKAT: degerler TAHMINIDIR ve saglayici panosundan dogrulanmalidir; fiyat listesi
+    # zaman icinde degisir ve buradaki sayilar sessizce eskir.
+    pricing:
+      gpt-5.4-mini:
+        input-per-million: 0.25
+        output-per-million: 2.00
+      gpt-5.6-luna:
+        input-per-million: 1.25
+        output-per-million: 10.00
+
     # GOREVE GORE MODEL. Bos birakilirsa her is yukaridaki varsayilan model ile yapilir.
     # Iki is birbirine benzemez: sohbet turu arac semalariyla KARAR verir (aranan sey
     # function calling isabeti ve dusuk gecikme), hata aciklamasi ise aracsizdir ve
