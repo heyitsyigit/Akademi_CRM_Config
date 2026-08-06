@@ -49,10 +49,13 @@ crm:
     # DIKKAT: degerler TAHMINIDIR ve saglayici panosundan dogrulanmalidir; fiyat listesi
     # zaman icinde degisir ve buradaki sayilar sessizce eskir.
     pricing:
-      gpt-5.4-mini:
+      # NOKTA ICEREN HARITA ANAHTARI KOSELI PARANTEZ ISTER: Spring nokta karakterini
+      # seviye ayraci sayar, aksi halde anahtar "gpt-5" olur ve "4-mini" ModelPrice
+      # alani sanilir - baglama SESSIZCE bos kalir ve maliyet hep sifir gorunur.
+      "[gpt-5.4-mini]":
         input-per-million: 0.25
         output-per-million: 2.00
-      gpt-5.6-luna:
+      "[gpt-5.6-luna]":
         input-per-million: 1.25
         output-per-million: 10.00
 
