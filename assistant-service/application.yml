@@ -45,13 +45,25 @@ crm:
     # parametredir (bkz. yukarisi). Ikinci model onu tanimiyorsa bos harita yazin (options: {});
     # ALAN HIC YAZILMAZSA genel secenekler devralinir ve saglayici 400 doner.
     tasks:
+      # SOHBET TURU her mesajda calisir; belirleyici olan GECIKME ve maliyettir.
+      # Olcum (2026-08-06, ayni istek, arac cagrimiyla):
+      #   gpt-5.4-mini 1000ms  |  gpt-5.6-luna 2013ms  (ayni token, ayni arac karari)
+      # PromptBehaviourIT gpt-5.4-mini ile 6/6 gecti (20,4 sn; luna 26,7 sn) - yani
+      # yonlendirme, dil kurali ve injection direnci ayni. Hizli olan secildi.
       conversation:
-        model: gpt-5.6-luna
+        model: gpt-5.4-mini
         options:
+          # Bu model her iki bicimi de kabul eder; none daha hizlidir (1000ms vs 1374ms).
           reasoning-effort: none
+
+      # HATA ACIKLAMASI seyrek calisir ve aracsizdir; belirleyici olan METIN KALITESIDIR.
+      # Cikti FR/kabul kriterine dayali ogretici bir paragraftir, birkac yuz ms fark
+      # kullaniciyi ilgilendirmez. Bu yuzden guclu model burada birakildi.
       error-explanation:
         model: gpt-5.6-luna
         options:
+          # ZORUNLU: bu model arac cagrimiyla birlikte varsayilan cabayi KABUL ETMEZ.
+          # Alan silinirse saglayici 400 doner (bkz. yukarida CRM-ASST-5005 notu).
           reasoning-effort: none
 
     chat-model:
