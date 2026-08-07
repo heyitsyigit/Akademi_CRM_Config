@@ -39,6 +39,32 @@ spring:
               uri: lb://party-service
               predicates:
                 - Path=/party/**
+            # ── T32 Faz 4 DEVİR (K-8 strangler) ──────────────────────────────────
+            # FR-002 müşteri araması artık aggregation-service'in Elasticsearch okuma
+            # modelinden (OM-1) cevaplanır. DIŞ UÇ YOLU DEĞİŞMEZ: frontend hâlâ
+            # /customer/api/v1/customers/search çağırır (api-paths.ts'teki GATEWAY_URL_PATTERN
+            # regex'i de dokunulmadan kalır) — devir FE'ye görünmezdir.
+            #
+            # SIRA ÖNEMLİDİR: bu route customer-service'in /customer/** route'undan ÖNCE
+            # gelmelidir, yoksa genel route aramayı da yutar. Liste sırasına ek olarak
+            # `order: -1` ile açıkça öne alındı (liste yeniden düzenlenirse de bozulmaz).
+            #
+            # RewritePath NEDEN GEREKLİ: aggregation-service kendi kanonik önekini sunar
+            # (/aggregation/api/v1/... — CLAUDE.md "yol öneki = servis adı" kuralı). Yol
+            # olduğu gibi iletilseydi servis 404 dönerdi. Rewrite sayesinde devir TAMAMEN
+            # konfigürasyondur: servis kodunda yabancı bir yol öneki taşınmaz ve Faz 5
+            # temizliği yalnız bu bloğun silinmesidir (deploy yok).
+            #
+            # GERİ DÖNÜŞ: bu route'u sil + busrefresh → arama saniyeler içinde
+            # customer-service'e döner. customer-service'teki arama kodu Faz 5'e kadar DURUR.
+            - id: customer-search-compat
+              uri: lb://aggregation-service
+              order: -1
+              predicates:
+                - Path=/customer/api/v1/customers/search
+                - Method=GET
+              filters:
+                - RewritePath=/customer/api/v1/customers/search,/aggregation/api/v1/customers/search
             - id: customer-service
               uri: lb://customer-service
               predicates:
@@ -81,8 +107,9 @@ spring:
               uri: lb://assistant-service
               predicates:
                 - Path=/assistant/**
-            # T32 Faz 1: CQRS okuma tarafı (kanonik yol — K-1). Faz 4 devrinde bunun ÜSTÜNE
-            # daha özgül customer-search uyumluluk route'u eklenecek (K-8 — SIRA ÖNEMLİ olacak).
+            # T32 Faz 1: CQRS okuma tarafı (kanonik yol — K-1). Faz 4'te uyumluluk route'u
+            # eklendi (yukarıdaki customer-search-compat); kanonik yol da açık kalır —
+            # yeni istemciler doğrudan buraya gelmelidir, Faz 5'te FE bu yola geçirilecek.
             - id: aggregation-service
               uri: lb://aggregation-service
               predicates:
