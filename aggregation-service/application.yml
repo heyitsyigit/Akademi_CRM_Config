@@ -10,6 +10,10 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_aggregation
     username: ${AGGREGATION_DB_USER:crm_aggregation}
     password: ${AGGREGATION_DB_PASSWORD:crm_aggregation}
+  # T32 Faz 2 (K-2): okuma modellerinin tek kalıcı deposu. URI restart sınıfıdır (T24) —
+  # client açılışta kurulur, busrefresh ile değişmez.
+  elasticsearch:
+    uris: http://${ELASTICSEARCH_HOST:localhost}:9200
 
 # T12: gateway önek soymaz; api-docs gateway üzerinden erişilebilsin diye önekli sunulur
 # (merkezi Swagger UI dropdown'ı /aggregation/v3/api-docs çağırır).
@@ -22,4 +26,6 @@ management:
     health:
       group:
         readiness:
-          include: readinessState,db
+          # ES tek kalıcı store'dur (K-2): yazamayan instance hazır sayılmaz (K-9 fail-closed'un
+          # altyapı bacağı). db = inbox idempotency (T18).
+          include: readinessState,db,elasticsearch
