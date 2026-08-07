@@ -1,0 +1,25 @@
+# T32 Faz 1 — aggregation-service (CQRS okuma tarafı) varsayılanları.
+# K-2 sınırı: PostgreSQL YALNIZ tüketici altyapısıdır (INBOX_EVENT + REINDEX_STATE);
+# okuma modellerinin kalıcı deposu Faz 2'den itibaren Elasticsearch'tür (crm.aggregation.*
+# ayarları ES bağlantısıyla birlikte Faz 2'de eklenir — ES URI restart sınıfı, T24).
+server:
+  port: 8092
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/crm_aggregation
+    username: ${AGGREGATION_DB_USER:crm_aggregation}
+    password: ${AGGREGATION_DB_PASSWORD:crm_aggregation}
+
+# T12: gateway önek soymaz; api-docs gateway üzerinden erişilebilsin diye önekli sunulur
+# (merkezi Swagger UI dropdown'ı /aggregation/v3/api-docs çağırır).
+springdoc:
+  api-docs:
+    path: /aggregation/v3/api-docs
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,db

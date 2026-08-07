@@ -1,0 +1,41 @@
+# Production profili. Yerel credential/URL varsayılanlarını bilinçli olarak ezer;
+# eksik secret veya endpoint uygulamanın fail-fast davranışıyla açılmasını engeller.
+# (Redis Faz 2'de sonuç cache'iyle birlikte gelir — o zaman buraya da eklenir.)
+crm:
+  environment: prod
+
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVICE_URL}
+
+keycloak:
+  issuer-uri: ${KEYCLOAK_ISSUER_URI}
+  jwk-set-uri: ${KEYCLOAK_JWKSET_URI}
+  account-uri: ${KEYCLOAK_ACCOUNT_URI}
+
+swagger:
+  oauth2:
+    authorization-url: ${SWAGGER_OAUTH2_AUTHORIZATION_URL}
+    token-url: ${SWAGGER_OAUTH2_TOKEN_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
