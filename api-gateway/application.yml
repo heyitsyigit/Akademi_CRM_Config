@@ -65,6 +65,29 @@ spring:
                 - Method=GET
               filters:
                 - RewritePath=/customer/api/v1/customers/search,/aggregation/api/v1/customers/search
+            # ── T32 Faz 6c DEVİR (OM-2 / FR-014) ─────────────────────────────────
+            # Hesaba bağlı ürünler artık aggregation-service'in okuma modelinden gelir.
+            # Faz 4 (FR-002) ile BİREBİR aynı mekanizma; tek farkı yolun bir değişken
+            # segment taşıması, bu yüzden RewritePath regex yakalar.
+            #
+            # KAPSAM DAR TUTULDU: yalnız ".../{acctId}/products" ve yalnız GET. Diğer
+            # /billing-accounts uçları (detay, PATCH güncelleme, DELETE pasife alma) OTORİTE
+            # işlemleridir ve customer-service'te KALIR — §3.2 ret listesi gereği aggregation
+            # onları asla almaz.
+            #
+            # $\{acctId}: YAML'da "$\" kaçışı şarttır, aksi hâlde Spring bunu property
+            # placeholder sanar ve açılışta çözemeyip patlar.
+            #
+            # GERİ DÖNÜŞ: bu bloğu sil + busrefresh → uç saniyeler içinde customer-service'e
+            # döner. Oradaki FR-014 kodu Faz 6d temizliğine kadar yerinde DURUR.
+            - id: account-products-compat
+              uri: lb://aggregation-service
+              order: -1
+              predicates:
+                - Path=/customer/api/v1/billing-accounts/{acctId}/products
+                - Method=GET
+              filters:
+                - RewritePath=/customer/api/v1/billing-accounts/(?<acctId>[^/]+)/products,/aggregation/api/v1/billing-accounts/$\{acctId}/products
             - id: customer-service
               uri: lb://customer-service
               predicates:
