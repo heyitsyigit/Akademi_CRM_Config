@@ -1,10 +1,19 @@
+# 8092 DEGIL: o numara aggregation-service'indir. Iki servis bagimsiz dallarda gelistirildi
+# ve ikisi de sirali bir sonraki numara olan 8092'yi aldi; birlestirmede cakisma ortaya cikti.
+# Kapsayicilar ayri oldugu icin bu bir CALISMA hatasi degildi - iki servis de ayaga kalkardi.
+# Yine de ayrildi: PROJECT_BRAIN'deki port tablosu bir SICILDIR ve tekil olmazsa "8092 hangi
+# servis?" sorusunun tek cevabi kalmaz; ayrica ikisini ayni host'ta (compose disinda, yerelde
+# `mvn spring-boot:run` ile) yan yana kaldirmak imkansiz olurdu. Sonraki karar tasindi: T32
+# aggregation'a aittir ve once numaralanmisti, asistan T33'tur.
 server:
-  port: 8092
+  port: 8093
 
-# T31 — CRM Asistani (LLM tabanli kullanici yardimcisi).
+# T33 — CRM Asistani (LLM tabanli kullanici yardimcisi).
+# (Bu karar bir sure T31/T32 olarak numaralandi; aggregation-service ile birlestirmede
+# ikisi de T32'yi kullandigi icin asistan T33'e tasindi. T31 = common-lib birlestirmesi.)
 # Bu servis bir TM Forum domain servisi DEGILDIR: veritabani yoktur, domain olayi uretmez,
 # outbox/inbox tasimaz. Kalici durum (konusma, kota sayaclari) yalniz Redis'tedir (T20).
-# Recete ve gerekce: backend/docs/ASISTAN_CHATBOT_ANALIZI.md
+# Recete ve gerekce: backend/docs/analizler/ASISTAN_CHATBOT_ANALIZI.md
 spring:
   data:
     redis:
