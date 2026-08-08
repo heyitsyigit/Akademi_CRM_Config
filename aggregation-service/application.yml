@@ -29,3 +29,18 @@ management:
           # ES tek kalıcı store'dur (K-2): yazamayan instance hazır sayılmaz (K-9 fail-closed'un
           # altyapı bacağı). db = inbox idempotency (T18).
           include: readinessState,db,elasticsearch
+
+# T32 Faz 6c (K-11) — reindex job'ı.
+#
+# reindex.interval-ms: REINDEX_STATE'teki REQUESTED talepleri tarama aralığı. @Scheduled
+# kaydında okunur, refresh ile DEĞİŞMEZ → **RESTART SINIFI** (T24 §3.2; order-service
+# reconcile.interval-ms ile aynı sınıf ve aynı gerekçe).
+#
+# Aralık bilinçli olarak UZUNDUR (60 sn): reindex bir bakım işlemidir, sıcak yol değil.
+# Talep yoksa tur bedelsizdir (tek indeksli sorgu). Reindex'i TETİKLEYEN bir uç YOKTUR —
+# §3.2 ret listesi bu servise yazma ucu almayı yasaklar; talep, REINDEX_STATE'e satır
+# yazılarak verilir (mapping'i değiştiren migration ya da operatör).
+crm:
+  aggregation:
+    reindex:
+      interval-ms: 60000
